@@ -26,60 +26,85 @@ export default function NumberSequenceGame() {
 
   const correctAudioRef = useRef<HTMLAudioElement | null>(null);
   const winAudioRef = useRef<HTMLAudioElement | null>(null);
+  const wrongAudioRef = useRef<HTMLAudioElement | null>(null); 
 
   // Initialize Sound Ref Elements safely
   useEffect(() => {
     correctAudioRef.current = new Audio('/sounds/correct.mp3');
     winAudioRef.current = new Audio('/sounds/win.mp3');
+    wrongAudioRef.current = new Audio('/sounds/wrong.mp3'); // 👈 Added wrong.mp3
   }, []);
 
   // Web Audio API Fallback Synthesizer
-  const playFallbackTone = useCallback((type: 'correct' | 'win') => {
-    try {
-      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      if (!AudioCtx) return;
+ // Web Audio API Fallback Synthesizer
+const playFallbackTone = useCallback((type: 'correct' | 'win' | 'wrong') => {
+  try {
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return;
 
-      const ctx = new AudioCtx();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
 
-      osc.connect(gain);
-      gain.connect(ctx.destination);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
 
-      if (type === 'correct') {
-        osc.frequency.setValueAtTime(523.25, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(659.25, ctx.currentTime + 0.15);
-        gain.gain.setValueAtTime(0.3, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.3);
-      } else {
-        osc.frequency.setValueAtTime(440, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.4);
-        gain.gain.setValueAtTime(0.4, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.6);
-      }
-    } catch {
-      // Ignore audio synthesis restrictions silently
+    if (type === 'correct') {
+      osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(659.25, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.3);
+    } else if (type === 'win') {
+      osc.frequency.setValueAtTime(440, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.4);
+      gain.gain.setValueAtTime(0.4, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.6);
+    } else if (type === 'wrong') {
+      // Low buzzing error tone fallback
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(150, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.25);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.25);
     }
-  }, []);
+  } catch {
+    // Ignore audio synthesis restrictions silently
+  }
+}, []);
 
-  const playSound = useCallback((type: 'correct' | 'win') => {
-    if (!soundEnabled) return;
+const playSound = useCallback((type: 'correct' | 'win' | 'wrong') => {
+  if (!soundEnabled) return;
 
-    const audioRef = type === 'correct' ? correctAudioRef.current : winAudioRef.current;
-
-    if (audioRef) {
-      audioRef.currentTime = 0;
-      audioRef.play().catch(() => {
-        playFallbackTone(type);
-      });
+  if (type === 'correct') {
+    if (correctAudioRef.current) {
+      correctAudioRef.current.currentTime = 0;
+      correctAudioRef.current.play().catch(() => playFallbackTone(type));
     } else {
       playFallbackTone(type);
     }
-  }, [soundEnabled, playFallbackTone]);
+  } else if (type === 'win') {
+    if (winAudioRef.current) {
+      winAudioRef.current.currentTime = 0;
+      winAudioRef.current.play().catch(() => playFallbackTone(type));
+    } else {
+      playFallbackTone(type);
+    }
+  } else if (type === 'wrong') {
+    if (wrongAudioRef.current) {
+      wrongAudioRef.current.currentTime = 0;
+      wrongAudioRef.current.play().catch(() => playFallbackTone(type));
+    } else {
+      playFallbackTone(type);
+    }
+  }
+}, [soundEnabled, playFallbackTone]);
+
 
   // Start/Reset Game State (Triggered manually on Reset button click)
   const initializeGame = useCallback(() => {
@@ -106,48 +131,49 @@ export default function NumberSequenceGame() {
   };
 
   const handleSlotClick = (index: number) => {
-    if (currentNumber === null) return;
+  if (currentNumber === null) return;
 
-    const expectedNumber = index + 1;
+  const expectedNumber = index + 1;
 
-    if (expectedNumber === currentNumber) {
-      playSound('correct');
-      const newBoard = [...boardState];
-      newBoard[index] = currentNumber;
-      setBoardState(newBoard);
+  if (expectedNumber === currentNumber) {
+    playSound('correct');
+    const newBoard = [...boardState];
+    newBoard[index] = currentNumber;
+    setBoardState(newBoard);
 
-      const newStreak = streak + 1;
-      setStreak(newStreak);
-      setScore((prev) => prev + 10 + newStreak * 2);
-      setCurrentNumber(null);
+    const newStreak = streak + 1;
+    setStreak(newStreak);
+    setScore((prev) => prev + 10 + newStreak * 2);
+    setCurrentNumber(null);
 
-      setShowCelebration(true);
-      setTimeout(() => setShowCelebration(false), 900);
+    setShowCelebration(true);
+    setTimeout(() => setShowCelebration(false), 900);
 
+    setFeedback({
+      type: 'success',
+      msg: `Awesome! ${expectedNumber} is right in its place!`,
+    });
+
+    if (pool.length === 0 && !newBoard.includes(null)) {
+      playSound('win');
       setFeedback({
         type: 'success',
-        msg: `Awesome! ${expectedNumber} is right in its place!`,
-      });
-
-      if (pool.length === 0 && !newBoard.includes(null)) {
-        playSound('win');
-        setFeedback({
-          type: 'success',
-          msg: '🎉 YOU COMPLETED ALL 100 NUMBERS! YOU ARE A COUNTING SUPERSTAR!',
-        });
-      }
-    } else {
-      setWiggleSlot(index);
-      setTimeout(() => setWiggleSlot(null), 350);
-      setStreak(0);
-      setFeedback({
-        type: 'error',
-        msg: `Oops! Where does ${currentNumber} belong? Try again!`,
+        msg: '🎉 YOU COMPLETED ALL 100 NUMBERS! YOU ARE A COUNTING SUPERSTAR!',
       });
     }
+  } else {
+    playSound('wrong'); // 👈 Triggers wrong sound when incorrect tile is clicked
+    setWiggleSlot(index);
+    setTimeout(() => setWiggleSlot(null), 350);
+    setStreak(0);
+    setFeedback({
+      type: 'error',
+      msg: `Oops! Where does ${currentNumber} belong? Try again!`,
+    });
+  }
 
-    setTimeout(() => setFeedback(null), 2500);
-  };
+  setTimeout(() => setFeedback(null), 2500);
+};
 
   const activeRange = useMemo(() => {
     if (currentNumber === null) return null;
