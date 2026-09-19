@@ -40,20 +40,20 @@ const SnakeStrip: React.FC<SnakeStripProps> = ({
       </div>
 
       {/* Main Strip Container - Mobile Scroll/Flex Safe */}
-      <div className="flex items-center gap-1 sm:gap-2 min-h-[70px] sm:min-h-[90px] overflow-x-auto no-scrollbar py-1">
+      <div className="flex items-center gap-1 sm:gap-2 min-h-17.5 sm:min-h-22.5 overflow-x-auto no-scrollbar py-1">
         {/* Head or Tail Left */}
         {!isEvenDecade ? (
-          <div className="flex-shrink-0 z-20 -mr-1.5 sm:-mr-2">
+          <div className="shrink-0 z-20 -mr-1.5 sm:-mr-2">
             <SnakeHead color={decade.snakeBody} />
           </div>
         ) : (
-          <div className="flex-shrink-0 z-20 -mr-1.5 sm:-mr-2">
+          <div className="shrink-0 z-20 -mr-1.5 sm:-mr-2">
             <SnakeTail color={decade.snakeBody} reverse />
           </div>
         )}
 
         {/* Bouncy Grid Slot Area */}
-        <div className="grid grid-cols-10 gap-1 sm:gap-1.5 flex-grow min-w-[300px] sm:min-w-0 relative items-center py-2">
+        <div className="grid grid-cols-10 gap-1 sm:gap-1.5 grow min-w-75 sm:min-w-0 relative items-center py-2">
           {/* Underlying Curved Snake Body Spine */}
           <svg className="absolute inset-x-0 top-1/2 -translate-y-1/2 w-full h-8 sm:h-12 pointer-events-none opacity-20 overflow-visible">
             <path
@@ -121,11 +121,11 @@ const SnakeStrip: React.FC<SnakeStripProps> = ({
 
         {/* Head or Tail Right */}
         {!isEvenDecade ? (
-          <div className="flex-shrink-0 z-20 -ml-1.5 sm:-ml-2">
+          <div className="shrink-0 z-20 -ml-1.5 sm:-ml-2">
             <SnakeTail color={decade.snakeBody} />
           </div>
         ) : (
-          <div className="flex-shrink-0 z-20 -ml-1.5 sm:-ml-2">
+          <div className="shrink-0 z-20 -ml-1.5 sm:-ml-2">
             <SnakeHead color={decade.snakeBody} reverse />
           </div>
         )}
